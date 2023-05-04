@@ -715,14 +715,14 @@ tqdm = ["tqdm"]
 
 [[package]]
 name = "gradio"
-version = "3.28.1"
+version = "3.28.2"
 description = "Python library for easily interacting with trained machine learning models"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "gradio-3.28.1-py3-none-any.whl", hash = "sha256:0811f04be88ee789d921fee0089c69b7da3b12dd7c937f383e4c0998663b4f21"},
-    {file = "gradio-3.28.1.tar.gz", hash = "sha256:15d959e73f77bb6980334a159ff177867f6636a2a1007a7154d55a1d6e6d8648"},
+    {file = "gradio-3.28.2-py3-none-any.whl", hash = "sha256:a28a7c9bccaa7662ceb08902586847e23431a69a304d14334ea290da5eb740df"},
+    {file = "gradio-3.28.2.tar.gz", hash = "sha256:93d0d0e70e7129c38980a989aa45ee7ce4b3b7fa1e6b326c024323e3a54e24ea"},
 ]
 
 [package.dependencies]
@@ -745,6 +745,7 @@ pandas = "*"
 pillow = "*"
 pydantic = "*"
 pydub = "*"
+pygments = ">=2.12.0"
 python-multipart = "*"
 pyyaml = "*"
 requests = "*"
@@ -1894,6 +1895,21 @@ files = [
 ]
 
 [[package]]
+name = "pygments"
+version = "2.15.1"
+description = "Pygments is a syntax highlighting package written in Python."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "Pygments-2.15.1-py3-none-any.whl", hash = "sha256:db2db3deb4b4179f399a09054b023b6a586b76499d36965813c71aa8ed7b5fd1"},
+    {file = "Pygments-2.15.1.tar.gz", hash = "sha256:8ace4d3c1dd481894b2005f560ead0f9f19ee64fe983366be1a21e171d12775c"},
+]
+
+[package.extras]
+plugins = ["importlib-metadata"]
+
+[[package]]
 name = "pyparsing"
 version = "3.0.9"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -2060,7 +2076,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
-name = "segment_anything"
+name = "segment-anything"
 version = "1.0"
 description = ""
 category = "main"
