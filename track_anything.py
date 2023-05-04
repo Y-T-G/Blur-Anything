@@ -45,7 +45,7 @@ class TrackingAnything:
 
 def parse_augment():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", type=str, default="cuda:0")
+    parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--sam_model_type", type=str, default="vit_h")
     parser.add_argument(
         "--port",
