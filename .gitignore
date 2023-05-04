@@ -1,0 +1,4 @@
+checkpoints/*
+output/*
+notebook.ipynb
+*.pyc
