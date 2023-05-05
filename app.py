@@ -17,6 +17,7 @@ import torch
 import torchvision
 from utils.painter import mask_painter
 from utils.blur import blur_frames
+import pims
 
 
 # download checkpoints
@@ -71,42 +72,25 @@ def get_frames_from_video(video_input, video_state):
     operation_log = [
         ("", ""),
         (
-            "Upload video already. Try click the image for adding targets to track and blur.",
+            "Video uploaded. Click the image for adding targets to track and blur.",
             "Normal",
         ),
     ]
     try:
-        cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if ret:
-                current_memory_usage = psutil.virtual_memory().percent
-                frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                if current_memory_usage > 90:
-                    operation_log = [
-                        (
-                            "Memory usage is too high (>90%). Stop the video extraction. Please reduce the video resolution or frame rate.",
-                            "Error",
-                        )
-                    ]
-                    print(
-                        "Memory usage is too high (>90%). Please reduce the video resolution or frame rate."
-                    )
-                    break
-            else:
-                break
+        frames = pims.Video(video_path)
+        fps = frames.frame_rate
+        image_size = (frames.shape[1], frames.shape[2])
+
     except (OSError, TypeError, ValueError, KeyError, SyntaxError) as e:
         print("read_frame_source:{} error. {}\n".format(video_path, str(e)))
-    image_size = (frames[0].shape[0], frames[0].shape[1])
+
     # initialize video_state
     video_state = {
         "user_name": user_name,
         "video_name": os.path.split(video_path)[-1],
         "origin_images": frames,
-        "painted_images": frames.copy(),
-        "masks": [np.zeros((frames[0].shape[0], frames[0].shape[1]), np.uint8)]
-        * len(frames),
+        "painted_images": [0] * len(frames),
+        "masks": [0] * len(frames),
         "logits": [None] * len(frames),
         "select_frame_number": 0,
         "fps": fps,
@@ -173,7 +157,7 @@ def select_template(image_selection_slider, video_state, interactive_state):
 
 
 # set the tracking end frame
-def get_end_number(track_pause_number_slider, video_state, interactive_state):
+def set_end_number(track_pause_number_slider, video_state, interactive_state):
     interactive_state["track_end_number"] = track_pause_number_slider
     operation_log = [
         ("", ""),
@@ -184,7 +168,7 @@ def get_end_number(track_pause_number_slider, video_state, interactive_state):
     ]
 
     return (
-        video_state["painted_images"][track_pause_number_slider],
+        video_state["origin_images"][track_pause_number_slider],
         interactive_state,
         operation_log,
     )
@@ -696,7 +680,7 @@ with gr.Blocks() as iface:
         api_name="select_image",
     )
     track_pause_number_slider.release(
-        fn=get_end_number,
+        fn=set_end_number,
         inputs=[track_pause_number_slider, video_state, interactive_state],
         outputs=[template_frame, interactive_state, run_status],
         api_name="end_image",
