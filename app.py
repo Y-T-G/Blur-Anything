@@ -519,7 +519,7 @@ description = """<p>Gradio demo for Blur Anything, a flexible and interactive
               load them. Code: <a
               href="https://github.com/Y-T-G/Blur-Anything">https://github.com/Y-T-G/Blur-Anything</a>
               <a
-              href="https://huggingface.co/spaces/watchtowerss/Track-Anything?duplicate=true"><img
+              href="https://huggingface.co/spaces/Y-T-G/Blur-Anything?duplicate=true"><img
               style="display: inline; margin-top: 0em; margin-bottom: 0em"
               src="https://bit.ly/3gLdBN6" alt="Duplicate Space" /></a></p>"""
 
