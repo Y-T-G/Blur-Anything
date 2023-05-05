@@ -51,7 +51,7 @@ def blur_frames_and_write(
     masks = np.expand_dims(masks, axis=3)  # expand to T, H, W, 1
     # size: (w, h)
     if ratio == 1:
-        size = None
+        size = (W, H)
         binary_masks = masks
     else:
         size = [int(W * ratio), int(H * ratio)]
