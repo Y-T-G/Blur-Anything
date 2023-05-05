@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 
@@ -64,6 +65,8 @@ def blur_frames_and_write(
         binary_masks = resize_masks(masks, tuple(size))
         frames = resize_frames(frames, tuple(size))  # T, H, W, 3
 
+    if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path))
     writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, size)
 
     for frame, mask in zip(frames, binary_masks):

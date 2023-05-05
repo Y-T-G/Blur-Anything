@@ -1,3 +1,4 @@
+import os
 from tqdm import tqdm
 
 from utils.interact_tools import SamControler
@@ -41,6 +42,8 @@ class TrackingAnything:
 
         if write:
             size = images[0].shape[:2][::-1]
+            if not os.path.exists(os.path.dirname(output_path)):
+                os.makedirs(os.path.dirname(output_path))
             writer = cv2.VideoWriter(
                 output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, size
             )
