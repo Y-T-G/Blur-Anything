@@ -33,7 +33,9 @@ def apply_blur(frame, strength):
 
 
 # blur frames
-def blur_frames(frames, masks, ratio, strength, dilate_radius=15):
+def blur_frames_and_write(
+    frames, masks, ratio, strength, dilate_radius=15, fps=30, output_path="blurred.mp4"
+):
     assert frames.shape[:3] == masks.shape, "different size between frames and masks"
     assert ratio > 0 and ratio <= 1, "ratio must in (0, 1]"
 
@@ -62,9 +64,15 @@ def blur_frames(frames, masks, ratio, strength, dilate_radius=15):
         binary_masks = resize_masks(masks, tuple(size))
         frames = resize_frames(frames, tuple(size))  # T, H, W, 3
 
-    for i, (frame, mask) in enumerate(zip(frames, binary_masks)):
+    writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, size)
+
+    for frame, mask in zip(frames, binary_masks):
         blurred_frame = apply_blur(frame, strength)
         masked = cv2.bitwise_or(blurred_frame, blurred_frame, mask=mask)
-        frames[i] = np.where(masked == (0, 0, 0), frame, masked)
+        processed = np.where(masked == (0, 0, 0), frame, masked)
 
-    return frames
+        writer.write(processed[:, :, ::-1])
+
+    writer.release()
+
+    return output_path

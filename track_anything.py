@@ -4,6 +4,9 @@ from utils.interact_tools import SamControler
 from tracker.base_tracker import BaseTracker
 import numpy as np
 import argparse
+import cv2
+
+from typing import Optional
 
 
 class TrackingAnything:
@@ -24,22 +27,41 @@ class TrackingAnything:
         )
         return mask, logit, painted_image
 
-    def generator(self, images: list, template_mask: np.ndarray):
+    def generator(
+        self,
+        images: list,
+        template_mask: np.ndarray,
+        write: Optional[bool] = False,
+        fps: Optional[int] = "30",
+        output_path: Optional[str] = "tracking.mp4",
+    ):
         masks = []
         logits = []
         painted_images = []
+
+        if write:
+            size = images[0].shape[:2][::-1]
+            writer = cv2.VideoWriter(
+                output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, size
+            )
+
         for i in tqdm(range(len(images)), desc="Tracking image"):
             if i == 0:
                 mask, logit, painted_image = self.xmem.track(images[i], template_mask)
-                masks.append(mask)
-                logits.append(logit)
-                painted_images.append(painted_image)
-
             else:
                 mask, logit, painted_image = self.xmem.track(images[i])
-                masks.append(mask)
-                logits.append(logit)
+
+            masks.append(mask)
+            logits.append(logit)
+
+            if write:
+                writer.write(painted_image[:,:,::-1])
+            else:
                 painted_images.append(painted_image)
+
+        if write:
+            writer.release()
+
         return masks, logits, painted_images
 
 

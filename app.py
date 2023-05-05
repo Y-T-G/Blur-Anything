@@ -1,7 +1,5 @@
 import os
 import time
-import cv2
-import psutil
 import requests
 import sys
 import json
@@ -16,7 +14,7 @@ import numpy as np
 import torch
 import torchvision
 from utils.painter import mask_painter
-from utils.blur import blur_frames
+from utils.blur import blur_frames_and_write
 import pims
 
 
@@ -341,7 +339,6 @@ def vos_tracking_video(video_state, interactive_state, mask_dropdown):
         video_state["masks"][video_state["select_frame_number"]] = template_mask
     else:
         template_mask = video_state["masks"][video_state["select_frame_number"]]
-    fps = video_state["fps"]
 
     # operation error
     if len(np.unique(template_mask)) == 1:
@@ -354,8 +351,10 @@ def vos_tracking_video(video_state, interactive_state, mask_dropdown):
             ("", ""),
         ]
         # return video_output, video_state, interactive_state, operation_error
+    output_path = "./output/track/{}".format(video_state["video_name"])
+    fps = video_state["fps"]
     masks, logits, painted_images = model.generator(
-        images=following_frames, template_mask=template_mask
+        images=following_frames, template_mask=template_mask, write=True, fps=fps,  output_path=output_path
     )
     # clear GPU memory
     model.xmem.clear_memory()
@@ -377,11 +376,6 @@ def vos_tracking_video(video_state, interactive_state, mask_dropdown):
             video_state["select_frame_number"]:
         ] = painted_images
 
-    video_output = generate_video_from_frames(
-        video_state["painted_images"],
-        output_path="./output/track/{}".format(video_state["video_name"]),
-        fps=fps,
-    )  # import video_input to name the output video
     interactive_state["inference_times"] += 1
 
     print(
@@ -394,19 +388,18 @@ def vos_tracking_video(video_state, interactive_state, mask_dropdown):
         )
     )
 
-    return video_output, video_state, interactive_state, operation_log
+    return output_path, video_state, interactive_state, operation_log
 
 
 def blur_video(video_state, interactive_state, mask_dropdown):
     operation_log = [("", ""), ("Removed the selected masks.", "Normal")]
 
     frames = np.asarray(video_state["origin_images"])[
-        : interactive_state["track_end_number"]
+        video_state["select_frame_number"]:interactive_state["track_end_number"]
     ]
     fps = video_state["fps"]
-    blur_masks = np.asarray(video_state["masks"])[
-        : interactive_state["track_end_number"]
-    ]
+    output_path = "./output/blur/{}".format(video_state["video_name"])
+    blur_masks = np.asarray(video_state["masks"][video_state["select_frame_number"]:interactive_state["track_end_number"]])
     if len(mask_dropdown) == 0:
         mask_dropdown = ["mask_001"]
     mask_dropdown.sort()
@@ -421,14 +414,17 @@ def blur_video(video_state, interactive_state, mask_dropdown):
         if i in blur_mask_numbers:
             continue
         blur_masks[blur_masks == i] = 0
-    # blur for videos
+
+    # blur video
     try:
-        blurred_frames = blur_frames(
+        blur_frames_and_write(
             frames,
             blur_masks,
             ratio=interactive_state["resize_ratio"],
             strength=interactive_state["blur_strength"],
-        )  # numpy array, T, H, W, 3
+            fps=fps,
+            output_path=output_path
+        )
     except Exception as e:
         print("Exception ", e)
         operation_log = [
@@ -438,14 +434,8 @@ def blur_video(video_state, interactive_state, mask_dropdown):
             ),
             ("", ""),
         ]
-        blurred_frames = video_state["origin_images"]
-    video_output = generate_video_from_frames(
-        blurred_frames,
-        output_path="./output/blur/{}".format(video_state["video_name"]),
-        fps=fps,
-    )  # import video_input to name the output video
 
-    return video_output, video_state, interactive_state, operation_log
+    return output_path, video_state, interactive_state, operation_log
 
 
 # generate video after vos inference
@@ -628,7 +618,7 @@ with gr.Blocks() as iface:
                         info=".",
                         visible=False,
                     )
-                    video_output = gr.Video(autosize=True, visible=False).style(
+                    video_output = gr.Video(visible=False).style(
                         height=360
                     )
                     with gr.Row():
@@ -641,7 +631,7 @@ with gr.Blocks() as iface:
                     with gr.Row():
                         blur_strength_slider = gr.Slider(
                             minimum=3,
-                            maximum=9,
+                            maximum=15,
                             step=2,
                             value=3,
                             label="Blur Strength",
