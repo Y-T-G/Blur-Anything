@@ -166,7 +166,6 @@ def set_end_number(track_pause_number_slider, video_state, interactive_state):
     ]
 
     return (
-        video_state["origin_images"][track_pause_number_slider],
         interactive_state,
         operation_log,
     )
@@ -672,7 +671,7 @@ with gr.Blocks() as iface:
     track_pause_number_slider.release(
         fn=set_end_number,
         inputs=[track_pause_number_slider, video_state, interactive_state],
-        outputs=[template_frame, interactive_state, run_status],
+        outputs=[interactive_state, run_status],
         api_name="end_image",
     )
     resize_ratio_slider.release(
