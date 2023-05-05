@@ -23,7 +23,7 @@ Blur Anything is an adaptation of the excellent [Track Anything](https://github.
 ## Get Started
 ```shell
 # Clone the repository:
-git clone https://github.com/Y-T-G/Blut-Anything.git
+git clone https://github.com/Y-T-G/Blur-Anything.git
 cd Blur-Anything
 
 # Install dependencies: 
