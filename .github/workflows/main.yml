@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - main
+jobs:
+  huggingface-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Hugging Face Sync
+        uses: JacobLinCool/huggingface-sync@v1
+        with:
+            user: Y-T-G
+            space: Blur-Anything
+            emoji: 💻
+            token:  ${{ secrets.HF_TOKEN }}
+            github: ${{ secrets.GITHUB_TOKEN }}
+            colorFrom: yellow
+            colorTo: pino
+            sdk: gradio
+            app_file: app.py
+            pinned: false
+            license: mit
