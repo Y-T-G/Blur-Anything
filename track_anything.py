@@ -11,12 +11,13 @@ from typing import Optional
 
 
 class TrackingAnything:
-    def __init__(self, sam_checkpoint, xmem_checkpoint, args):
+    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, xmem_checkpoint, args):
         self.args = args
-        self.sam_checkpoint = sam_checkpoint
+        self.sam_pt_checkpoint = sam_pt_checkpoint
+        self.sam_onnx_checkpoint = sam_onnx_checkpoint
         self.xmem_checkpoint = xmem_checkpoint
         self.samcontroler = SamControler(
-            self.sam_checkpoint, args.sam_model_type, args.device
+            self.sam_pt_checkpoint, self.sam_onnx_checkpoint, args.sam_model_type, args.device
         )
         self.xmem = BaseTracker(self.xmem_checkpoint, device=args.device)
 
@@ -71,7 +72,7 @@ class TrackingAnything:
 def parse_augment():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--sam_model_type", type=str, default="vit_b")
+    parser.add_argument("--sam_model_type", type=str, default="vit_t")
     parser.add_argument(
         "--port",
         type=int,

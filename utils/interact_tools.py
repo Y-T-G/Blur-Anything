@@ -17,12 +17,12 @@ contour_width = 5
 
 
 class SamControler:
-    def __init__(self, SAM_checkpoint, model_type, device):
+    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device):
         """
         initialize sam controler
         """
 
-        self.sam_controler = BaseSegmenter(SAM_checkpoint, model_type, device)
+        self.sam_controler = BaseSegmenter(sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device)
 
     def first_frame_click(
         self,
@@ -43,6 +43,7 @@ class SamControler:
             prompts = {
                 "point_coords": points,
                 "point_labels": labels,
+                "orig_im_size": image.shape[:2],
             }
             masks, scores, logits = self.sam_controler.predict(
                 prompts, "point", multimask

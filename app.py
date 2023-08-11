@@ -4,18 +4,24 @@ import requests
 import sys
 import json
 
+import gradio as gr
+import numpy as np
+import torch
+import torchvision
+import pims
+
+from export_onnx_model import run_export
+from onnxruntime.quantization import QuantType
+from onnxruntime.quantization.quantize import quantize_dynamic
+
 sys.path.append(sys.path[0] + "/tracker")
 sys.path.append(sys.path[0] + "/tracker/model")
 
 from track_anything import TrackingAnything
 from track_anything import parse_augment
-import gradio as gr
-import numpy as np
-import torch
-import torchvision
+
 from utils.painter import mask_painter
 from utils.blur import blur_frames_and_write
-import pims
 
 
 # download checkpoints
@@ -24,14 +30,14 @@ def download_checkpoint(url, folder, filename):
     filepath = os.path.join(folder, filename)
 
     if not os.path.exists(filepath):
-        print("download checkpoints ......")
+        print("Downloading checkpoints...")
         response = requests.get(url, stream=True)
         with open(filepath, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
 
-        print("download successfully!")
+        print("Download successful.")
 
     return filepath
 
@@ -213,6 +219,7 @@ def sam_refine(
         labels=np.array(prompt["input_label"]),
         multimask=prompt["multimask_output"],
     )
+
     video_state["masks"][video_state["select_frame_number"]] = mask
     video_state["logits"][video_state["select_frame_number"]] = logit
     video_state["painted_images"][video_state["select_frame_number"]] = painted_image
@@ -455,6 +462,44 @@ def generate_video_from_frames(frames, output_path, fps=30):
     return output_path
 
 
+# convert to onnx quantized model
+def convert_to_onnx(args, checkpoint, quantized=True):
+    """
+    Convert the model to onnx format.
+
+    Args:
+        model (nn.Module): The model to convert.
+        output_path (str): The path to save the onnx model.
+        input_shape (tuple): The input shape of the model.
+        quantized (bool, optional): Whether to quantize the model. Defaults to True.
+    """
+    onnx_output_path = f"{checkpoint.split('.')[-2]}.onnx"
+    quant_output_path = f"{checkpoint.split('.')[-2]}_quant.onnx"
+
+    print("Converting to ONNX quantized model...")
+
+    if not (os.path.exists(onnx_output_path)):
+        run_export(
+            model_type=args.sam_model_type,
+            checkpoint=checkpoint,
+            opset=16,
+            output=onnx_output_path,
+            return_single_mask=True
+        )
+
+    if quantized and not (os.path.exists(quant_output_path)):
+        quantize_dynamic(
+            model_input=onnx_output_path,
+            model_output=quant_output_path,
+            optimize_model=True,
+            per_channel=False,
+            reduce_range=False,
+            weight_type=QuantType.QUInt8,
+        )
+
+    return quant_output_path if quantized else onnx_output_path
+
+
 # args, defined in track_anything.py
 args = parse_augment()
 
@@ -463,11 +508,13 @@ SAM_checkpoint_dict = {
     "vit_h": "sam_vit_h_4b8939.pth",
     "vit_l": "sam_vit_l_0b3195.pth",
     "vit_b": "sam_vit_b_01ec64.pth",
+    "vit_t": "mobile_sam.pt",
 }
 SAM_checkpoint_url_dict = {
     "vit_h": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth",
     "vit_l": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth",
     "vit_b": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth",
+    "vit_t": "https://github.com/ChaoningZhang/MobileSAM/raw/master/weights/mobile_sam.pt",
 }
 sam_checkpoint = SAM_checkpoint_dict[args.sam_model_type]
 sam_checkpoint_url = SAM_checkpoint_url_dict[args.sam_model_type]
@@ -476,13 +523,17 @@ xmem_checkpoint_url = (
     "https://github.com/hkchengrex/XMem/releases/download/v1.0/XMem-s012.pth"
 )
 
-# use sam to get the mask
-# initialize sam, xmem
-folder = "./checkpoints"
-SAM_checkpoint = download_checkpoint(sam_checkpoint_url, folder, sam_checkpoint)
+# initialize SAM, XMem
+folder = "checkpoints"
+sam_pt_checkpoint = download_checkpoint(sam_checkpoint_url, folder, sam_checkpoint)
 xmem_checkpoint = download_checkpoint(xmem_checkpoint_url, folder, xmem_checkpoint)
 
-model = TrackingAnything(SAM_checkpoint, xmem_checkpoint, args)
+if args.sam_model_type == "vit_t":
+    sam_onnx_checkpoint = convert_to_onnx(args, sam_pt_checkpoint, quantized=True)
+else:
+    sam_onnx_checkpoint = ""
+
+model = TrackingAnything(sam_pt_checkpoint, sam_onnx_checkpoint, xmem_checkpoint, args)
 
 title = """<p><h1 align="center">Blur-Anything</h1></p>
     """
@@ -574,7 +625,7 @@ with gr.Blocks() as iface:
                             )
                             clear_button_click = gr.Button(
                                 value="Clear Clicks", interactive=True, visible=False
-                            ).style(height=160)
+                            )
                             Add_mask_button = gr.Button(
                                 value="Add mask", interactive=True, visible=False
                             )
@@ -583,7 +634,7 @@ with gr.Blocks() as iface:
                         interactive=True,
                         elem_id="template_frame",
                         visible=False,
-                    ).style(height=360)
+                    )
                     image_selection_slider = gr.Slider(
                         minimum=1,
                         maximum=100,
@@ -617,9 +668,7 @@ with gr.Blocks() as iface:
                         info=".",
                         visible=False,
                     )
-                    video_output = gr.Video(visible=False).style(
-                        height=360
-                    )
+                    video_output = gr.Video(visible=False)
                     with gr.Row():
                         tracking_video_predict_button = gr.Button(
                             value="Tracking", visible=False

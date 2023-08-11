@@ -20,6 +20,10 @@ matplotlib = "^3.7.1"
 segment-anything = {git = "https://github.com/facebookresearch/segment-anything.git"}
 torchvision = "^0.15.1"
 pims = "^0.6.1"
+mobile-sam = {git = "https://github.com/ChaoningZhang/MobileSAM.git"}
+onnxruntime = "^1.15.1"
+timm = "^0.9.5"
+onnx = "^1.14.0"
 
 
 [build-system]
