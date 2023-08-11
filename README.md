@@ -1,15 +1,3 @@
----
-title: Blur Anything
-emoji: 💻
-colorFrom: yellow
-colorTo: pink
-sdk: gradio
-sdk_version: 3.28.1
-app_file: app.py
-pinned: false
-license: mit
----
-
 # Blur Anything For Videos
 
 Blur Anything is an adaptation of the excellent [Track Anything](https://github.com/gaomingqi/Track-Anything) project which is in turn based on Meta's Segment Anything and XMem. It allows you to blur anything in a video, including faces, license plates, etc.
