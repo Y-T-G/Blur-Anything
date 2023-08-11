@@ -56,7 +56,7 @@ def get_prompt(click_state, click_input):
         "prompt_type": ["click"],
         "input_point": click_state[0],
         "input_label": click_state[1],
-        "multimask_output": "True",
+        "multimask_output": "False",
     }
     return prompt
 

@@ -23,6 +23,7 @@ class SamControler:
         """
 
         self.sam_controler = BaseSegmenter(sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device)
+        self.onnx = model_type == "vit_t"
 
     def first_frame_click(
         self,
@@ -38,32 +39,38 @@ class SamControler:
         """
         # self.sam_controler.set_image(image)
         neg_flag = labels[-1]
-        if neg_flag == 1:
-            # find neg
+
+        if self.onnx:
+            onnx_coord = np.concatenate([points, np.array([[0.0, 0.0]])], axis=0)[None, :, :]
+            onnx_label = np.concatenate([labels, np.array([-1])], axis=0)[None, :].astype(np.float32)
+            onnx_coord = self.sam_controler.predictor.transform.apply_coords(onnx_coord, image.shape[:2]).astype(np.float32)
+            prompts = {
+                "point_coords": onnx_coord,
+                "point_labels": onnx_label,
+                "orig_im_size": np.array(image.shape[:2], dtype=np.float32),
+            }
+
+        else:
             prompts = {
                 "point_coords": points,
                 "point_labels": labels,
-                "orig_im_size": image.shape[:2],
             }
+
+        if neg_flag == 1:
+            # find positive
             masks, scores, logits = self.sam_controler.predict(
                 prompts, "point", multimask
             )
             mask, logit = masks[np.argmax(scores)], logits[np.argmax(scores), :, :]
-            prompts = {
-                "point_coords": points,
-                "point_labels": labels,
-                "mask_input": logit[None, :, :],
-            }
+
+            prompts["mask_input"] = np.expand_dims(logit[None, :, :], 0)
             masks, scores, logits = self.sam_controler.predict(
                 prompts, "both", multimask
             )
             mask, logit = masks[np.argmax(scores)], logits[np.argmax(scores), :, :]
+
         else:
-            # find positive
-            prompts = {
-                "point_coords": points,
-                "point_labels": labels,
-            }
+            # find neg
             masks, scores, logits = self.sam_controler.predict(
                 prompts, "point", multimask
             )

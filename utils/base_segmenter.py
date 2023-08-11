@@ -24,8 +24,10 @@ class BaseSegmenter:
             from mobile_sam import sam_model_registry, SamPredictor
             from onnxruntime import InferenceSession
             self.ort_session = InferenceSession(sam_onnx_checkpoint)
+            self.predict = self.predict_onnx
         else:
             from segment_anything import sam_model_registry, SamPredictor
+            self.predict = self.predict_pt
 
         self.model = sam_model_registry[model_type](checkpoint=sam_pt_checkpoint)
         self.model.to(device=self.device)
@@ -51,7 +53,7 @@ class BaseSegmenter:
         self.predictor.reset_image()
         self.embedded = False
 
-    def predict(self, prompts, mode, multimask=True):
+    def predict_pt(self, prompts, mode, multimask=True):
         """
         image: numpy array, h, w, 3
         prompts: dictionary, 3 keys: 'point_coords', 'point_labels', 'mask_input'
@@ -115,17 +117,20 @@ class BaseSegmenter:
                 "orig_im_size": prompts["orig_im_size"],
             }
             masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            masks = masks > self.predictor.model.mask_threshold
 
         elif mode == "mask":
             ort_inputs = {
                 "image_embeddings": self.image_embedding,
-                "point_coords": prompts["point_coords"],
+                "point_coords": np.zeros((len(prompts["point_labels"]), 2), dtype=np.float32),
                 "point_labels": prompts["point_labels"],
                 "mask_input": prompts["mask_input"],
                 "has_mask_input": np.ones(1, dtype=np.float32),
                 "orig_im_size": prompts["orig_im_size"],
             }
             masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            masks = masks > self.predictor.model.mask_threshold
+
         elif mode == "both":  # both
             ort_inputs = {
                 "image_embeddings": self.image_embedding,
@@ -136,7 +141,9 @@ class BaseSegmenter:
                 "orig_im_size": prompts["orig_im_size"],
             }
             masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            masks = masks > self.predictor.model.mask_threshold
+
         else:
             raise ("Not implement now!")
         # masks (n, h, w), scores (n,), logits (n, 256, 256)
-        return masks, scores, logits
+        return masks[0], scores[0], logits[0]
