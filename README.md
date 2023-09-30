@@ -8,7 +8,7 @@ Blur Anything is an adaptation of the excellent [Track Anything](https://github.
 </a>
 </div>
 
-https://github.com/Y-T-G/Blur-Anything/raw/main/assets/sample-1-blurred-stacked.mp4
+<video src="https://media.githubusercontent.com/media/Y-T-G/Blur-Anything/main/assets/sample-1-blurred-stacked.mp4"></video>
 
 ## Get Started
 ```shell
