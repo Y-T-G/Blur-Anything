@@ -18,7 +18,7 @@ sys.path.append(sys.path[0] + "/tracker")
 sys.path.append(sys.path[0] + "/tracker/model")
 
 from track_anything import TrackingAnything
-from track_anything import parse_augment
+from track_anything import parse_argument
 
 from utils.painter import mask_painter
 from utils.blur import blur_frames_and_write
@@ -501,7 +501,7 @@ def convert_to_onnx(args, checkpoint, quantized=True):
 
 
 # args, defined in track_anything.py
-args = parse_augment()
+args = parse_argument()
 
 # check and download checkpoints if needed
 SAM_checkpoint_dict = {
@@ -529,6 +529,8 @@ sam_pt_checkpoint = download_checkpoint(sam_checkpoint_url, folder, sam_checkpoi
 xmem_checkpoint = download_checkpoint(xmem_checkpoint_url, folder, xmem_checkpoint)
 
 if args.sam_model_type == "vit_t":
+    if args.backend not in ("", "onnx", "openvino"):
+        print("vit_t only supports `onnx` and `openvino` backends. Falling back to `onnx`")
     sam_onnx_checkpoint = convert_to_onnx(args, sam_pt_checkpoint, quantized=True)
 else:
     sam_onnx_checkpoint = ""

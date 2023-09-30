@@ -17,7 +17,8 @@ class TrackingAnything:
         self.sam_onnx_checkpoint = sam_onnx_checkpoint
         self.xmem_checkpoint = xmem_checkpoint
         self.samcontroler = SamControler(
-            self.sam_pt_checkpoint, self.sam_onnx_checkpoint, args.sam_model_type, args.device
+            self.sam_pt_checkpoint, self.sam_onnx_checkpoint,
+            args.sam_model_type, args.backend, args.device
         )
         self.xmem = BaseTracker(self.xmem_checkpoint, device=args.device)
 
@@ -69,9 +70,15 @@ class TrackingAnything:
         return masks, logits, painted_images
 
 
-def parse_augment():
+def parse_argument():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, default="cpu")
+    parser.add_argument(
+        "--backend",
+        type=str,
+        default="",
+        choices=["onnx", "openvino"],
+        help="Specify either `onnx` or `openvino` backend for vit_t model. Not applicable for other models.")
     parser.add_argument("--sam_model_type", type=str, default="vit_t")
     parser.add_argument(
         "--port",
@@ -82,6 +89,10 @@ def parse_augment():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--mask_save", default=False)
     args = parser.parse_args()
+
+    if args.backend in ("onnx", "openvino") and args.sam_model_type != "vit_t":
+        print(f" {args.sam_model_type} does not support `onnx` or `openvino` \
+              backend. Using PyTorch backend...")
 
     if args.debug:
         print(args)

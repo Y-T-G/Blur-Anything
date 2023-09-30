@@ -8,6 +8,8 @@ Blur Anything is an adaptation of the excellent [Track Anything](https://github.
 </a>
 </div>
 
+https://github.com/Y-T-G/Blur-Anything/raw/main/assets/sample-1-blurred-stacked.mp4
+
 ## Get Started
 ```shell
 # Clone the repository:
@@ -18,15 +20,22 @@ cd Blur-Anything
 pip install -r requirements.txt
 
 # Run the Blur-Anything gradio demo.
-python app.py --device cuda:0
-# python app.py --device cuda:0 --sam_model_type vit_b # for lower memory usage
+python app.py --device [cpu|cuda:0|cuda:1|...] --sam_model_type [vit_t| vit_b|vit_h| vit_l] [--backend [onnx|openvino]]
 ```
+
+## Features
+
+- FastSAM with ONNX and OpenVINO support.
+- Lower memory usage.
 
 ## To Do
 - [x] Add a gradio demo
 - [ ] Add support to use YouTube video URL
 - [ ] Add option to completely black out the object
+- [ ] Convert XMem to ONNX
 
 ## Acknowledgements
 
 The project is an adaptation of [Track Anything](https://github.com/gaomingqi/Track-Anything) which is based on [Segment Anything](https://github.com/facebookresearch/segment-anything) and [XMem](https://github.com/hkchengrex/XMem).
+
+Thanks to [PIMS](https://github.com/soft-matter/pims) which is used to process video files while keeping memory usage low.

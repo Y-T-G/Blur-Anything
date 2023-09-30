@@ -3,13 +3,14 @@ import numpy as np
 
 
 class BaseSegmenter:
-    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device="cuda:0"):
+    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, model_type,
+                 backend, device="cuda:0"):
         """
         device: model device
         SAM_checkpoint: path of SAM checkpoint
         model_type: vit_b, vit_l, vit_h, vit_t
         """
-        print(f"Initializing BaseSegmenter to {device}")
+        print(f"Initializing BaseSegmenter to {device} with {backend} backend")
         assert model_type in [
             "vit_b",
             "vit_l",
@@ -20,11 +21,25 @@ class BaseSegmenter:
         self.device = device
         self.torch_dtype = torch.float16 if "cuda" in device else torch.float32
 
+        self.backend = backend
+
         if (model_type == "vit_t"):
             from mobile_sam import sam_model_registry, SamPredictor
-            from onnxruntime import InferenceSession
-            self.ort_session = InferenceSession(sam_onnx_checkpoint)
-            self.predict = self.predict_onnx
+            if self.backend == "onnx":
+                from onnxruntime import InferenceSession
+                self.ort_session = InferenceSession(sam_onnx_checkpoint)
+                self.predict = self.predict_onnx_ov
+            elif self.backend == "openvino":
+                from openvino import Core
+                ov_core = Core()
+                ov_model = ov_core.read_model(sam_onnx_checkpoint)
+                ov_device = "CPU" if device == "cpu" else "AUTO"
+                self.ir_model = ov_core.compile_model(model=ov_model,
+                                                      device_name=ov_device)
+                self.ov_ir = self.ir_model.create_infer_request()
+                self.predict = self.predict_onnx_ov
+            else:
+                raise ("Unsupported Backend")
         else:
             from segment_anything import sam_model_registry, SamPredictor
             self.predict = self.predict_pt
@@ -55,6 +70,8 @@ class BaseSegmenter:
 
     def predict_pt(self, prompts, mode, multimask=True):
         """
+        Prediction using PyTorch backend.
+
         image: numpy array, h, w, 3
         prompts: dictionary, 3 keys: 'point_coords', 'point_labels', 'mask_input'
         prompts['point_coords']: numpy array [N,2]
@@ -91,8 +108,10 @@ class BaseSegmenter:
         # masks (n, h, w), scores (n,), logits (n, 256, 256)
         return masks, scores, logits
 
-    def predict_onnx(self, prompts, mode, multimask=True):
+    def predict_onnx_ov(self, prompts, mode, multimask=True):
         """
+        Prediction using ONNX or OpenVINO backend.
+
         image: numpy array, h, w, 3
         prompts: dictionary, 3 keys: 'point_coords', 'point_labels', 'mask_input'
         prompts['point_coords']: numpy array [N,2]
@@ -108,7 +127,7 @@ class BaseSegmenter:
         assert mode in ["point", "mask", "both"], "mode must be point, mask, or both"
 
         if mode == "point":
-            ort_inputs = {
+            inputs = {
                 "image_embeddings": self.image_embedding,
                 "point_coords": prompts["point_coords"],
                 "point_labels": prompts["point_labels"],
@@ -116,11 +135,14 @@ class BaseSegmenter:
                 "has_mask_input": np.zeros(1, dtype=np.float32),
                 "orig_im_size": prompts["orig_im_size"],
             }
-            masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            if self.backend == "onnx":
+                masks, scores, logits = self.ort_session.run(None, inputs)
+            elif self.backend == "openvino":
+                masks, scores, logits = self.ov_ir.infer(inputs).to_tuple()
             masks = masks > self.predictor.model.mask_threshold
 
         elif mode == "mask":
-            ort_inputs = {
+            inputs = {
                 "image_embeddings": self.image_embedding,
                 "point_coords": np.zeros((len(prompts["point_labels"]), 2), dtype=np.float32),
                 "point_labels": prompts["point_labels"],
@@ -128,11 +150,14 @@ class BaseSegmenter:
                 "has_mask_input": np.ones(1, dtype=np.float32),
                 "orig_im_size": prompts["orig_im_size"],
             }
-            masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            if self.backend == "onnx":
+                masks, scores, logits = self.ort_session.run(None, inputs)
+            elif self.backend == "openvino":
+                masks, scores, logits = self.ov_ir.infer(inputs).to_tuple()
             masks = masks > self.predictor.model.mask_threshold
 
         elif mode == "both":  # both
-            ort_inputs = {
+            inputs = {
                 "image_embeddings": self.image_embedding,
                 "point_coords": prompts["point_coords"],
                 "point_labels": prompts["point_labels"],
@@ -140,7 +165,10 @@ class BaseSegmenter:
                 "has_mask_input": np.ones(1, dtype=np.float32),
                 "orig_im_size": prompts["orig_im_size"],
             }
-            masks, scores, logits = self.ort_session.run(None, ort_inputs)
+            if self.backend == "onnx":
+                masks, scores, logits = self.ort_session.run(None, inputs)
+            elif self.backend == "openvino":
+                masks, scores, logits = self.ov_ir.infer(inputs).to_tuple()
             masks = masks > self.predictor.model.mask_threshold
 
         else:

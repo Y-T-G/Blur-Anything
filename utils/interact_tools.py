@@ -17,12 +17,12 @@ contour_width = 5
 
 
 class SamControler:
-    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device):
+    def __init__(self, sam_pt_checkpoint, sam_onnx_checkpoint, model_type, backend, device):
         """
         initialize sam controler
         """
 
-        self.sam_controler = BaseSegmenter(sam_pt_checkpoint, sam_onnx_checkpoint, model_type, device)
+        self.sam_controler = BaseSegmenter(sam_pt_checkpoint, sam_onnx_checkpoint, model_type, backend, device)
         self.onnx = model_type == "vit_t"
 
     def first_frame_click(
