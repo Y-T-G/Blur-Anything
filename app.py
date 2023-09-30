@@ -679,7 +679,7 @@ with gr.Blocks() as iface:
                     with gr.Row():
                         blur_strength_slider = gr.Slider(
                             minimum=3,
-                            maximum=15,
+                            maximum=30,
                             step=2,
                             value=3,
                             label="Blur Strength",
