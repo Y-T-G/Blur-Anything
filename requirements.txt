@@ -61,6 +61,7 @@ nvidia-nccl-cu11==2.14.3
 nvidia-nvtx-cu11==11.7.91
 onnx==1.14.0
 onnxruntime==1.15.1
+openvino
 opencv-python==4.7.0.72
 orjson==3.8.11
 packaging==23.1
