@@ -1,5 +1,7 @@
 # Blur Anything For Videos
 
+![Mentioned in Awesome OpenVINO](https://camo.githubusercontent.com/9dbe56f475e0abb1d07a9a18d841378c3d40325ae7df300f29491158cf38d013/68747470733a2f2f617765736f6d652e72652f6d656e74696f6e65642d62616467652d666c61742e737667)
+
 Blur Anything is an adaptation of the excellent [Track Anything](https://github.com/gaomingqi/Track-Anything) project which is in turn based on Meta's Segment Anything and XMem. It allows you to blur anything in a video, including faces, license plates, etc.
 
 <div>
